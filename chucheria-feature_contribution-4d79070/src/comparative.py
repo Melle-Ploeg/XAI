@@ -2,22 +2,26 @@ import numpy as np
 from lime import lime_tabular
 import pandas as pd
 from scipy.sparse import dia
-from sklearn.datasets import load_diabetes
+from sklearn.datasets import load_diabetes, load_wine
 from sklearn.model_selection import train_test_split
 import shap
 
 from _ft_contribution import GradientBoostingRegressor
+from _ft_contribution_classifier import GradientBoostingClassifier
 from _load_concrete import load_concrete
 
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str) -> None:
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True) -> None:
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
 
-    reg = GradientBoostingRegressor(random_state=0,
-                                    n_estimators=10,
-                                    criterion=['friedman_mse', 'squared_error', 'mae'][1],
-                                    max_depth=5)
+    if regression:
+        reg = GradientBoostingRegressor(random_state=0,
+                                        n_estimators=10,
+                                        criterion=['friedman_mse', 'squared_error', 'mae'][1],
+                                        max_depth=5)
+    else:
+        reg = GradientBoostingClassifier(random_state=0, max_depth=5)
     reg.fit(X_train, y_train)
     shap_explainer = shap.Explainer(reg)
     lime_explainer = lime_tabular.LimeTabularExplainer(
@@ -83,9 +87,16 @@ def concrete():
     feature_names = load_concrete()['feature_names']
     comparative(X, y, feature_names, 'concrete')
 
+def wine():
+    X, y = load_wine(return_X_y=True)
+    X,y = np.array(X), np.array(y)
+    feature_names = load_wine()['feature_names']
+    comparative(X, y, feature_names, 'wine', False)
+
 
 if __name__ == '__main__': 
 
-    diabetes()
+    # diabetes()
     concrete()
+    # wine()
 

@@ -3,20 +3,23 @@ import random
 import numpy as np
 import pandas as pd
 import sklearn.datasets
-from sklearn.datasets import load_diabetes, fetch_california_housing
+from sklearn.datasets import load_diabetes, fetch_california_housing, load_breast_cancer, load_wine, fetch_covtype
 from sklearn.model_selection import train_test_split
 
 from _ft_contribution import GradientBoostingRegressor
+from _ft_contribution_classifier import GradientBoostingClassifier
 from _load_concrete import load_concrete
 
 
 def correlation(X: np.array, y: np.array, column: int, feature_names: list, 
-                name: int) -> None:
+                name: int, regression=True) -> None:
 
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
-
-    reg = GradientBoostingRegressor(random_state=0, n_estimators=10)
+    if regression:
+        reg = GradientBoostingRegressor(random_state=0, n_estimators=10)
+    else:
+        reg = GradientBoostingClassifier(random_state=0)
     reg.fit(X_train, y_train)
     _, residuos, explanations = reg.decision_path(X_test)
 
@@ -40,7 +43,10 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
     counter = np.zeros((X_train.shape[1], levels))
 
     for z in range(levels):
-        reg = GradientBoostingRegressor(random_state=z, n_estimators=10)
+        if regression:
+            reg = GradientBoostingRegressor(random_state=z, n_estimators=10)
+        else:
+            reg = GradientBoostingClassifier(random_state=z)
         reg.fit(X_train, y_train)
         _, residuos, explanations = reg.decision_path(X_test)
 
@@ -78,8 +84,26 @@ def housing():
     feature_names = fetch_california_housing()['feature_names']
     correlation(X, y, 7, feature_names, 'housing')
 
+def breasts():
+    X, y = load_breast_cancer(return_X_y=True)
+    feature_names = load_breast_cancer()['feature_names']
+    correlation(X, y, 30, feature_names, 'breast cancer', False)
+
+def wine():
+    X, y = load_wine(return_X_y=True)
+    feature_names = load_wine()['feature_names']
+    correlation(X, y, 11, feature_names, 'wine', False)
+
+def cov():
+    X, y = fetch_covtype(return_X_y=True)
+    feature_names = fetch_covtype()['feature_names']
+    correlation(X, y, 10, feature_names, 'cov', False)
+
 if __name__ == '__main__':
 
     diabetes()
-    concrete()
-    housing()
+    # concrete()
+    # housing()
+    # breasts()
+    wine()
+    cov()

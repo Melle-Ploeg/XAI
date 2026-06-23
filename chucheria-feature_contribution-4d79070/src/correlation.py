@@ -144,14 +144,25 @@ def wine_spanish():
     feature_names = df.columns
     correlation(X, y, 2, feature_names, 'wine', regression=True, n_estimators=100)
 
+def heart():
+    df = pd.read_csv('../../datasets/heart.csv')
+    cat_columns = df.select_dtypes(['object']).columns
+    df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    y = np.array(df.loc[:, 'HeartDisease'])
+    df = df.fillna(df.mean())
+    X = np.array(df.drop('HeartDisease', axis=1))
+    feature_names = df.columns
+    correlation(X, y, 2, feature_names, 'heart disease', regression=False, n_estimators=10)
+
 if __name__ == '__main__':
 
     # diabetes()
     # concrete()
     # housing()
     # breasts()
-    wine()
+    # wine()
     # cov()
     # stroke()
     # stars()
     # wine_spanish()
+    heart()

@@ -140,8 +140,9 @@ def wine_spanish():
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
     y = np.array(df.loc[:, 'price'])
     df = df.fillna(df.mean())
-    X = np.array(df.drop('price', axis=1))
-    feature_names = df.columns
+    df = df.drop('price', axis=1)
+    X = np.array(df)
+    feature_names = list(df.columns)
     correlation(X, y, 2, feature_names, 'wine', regression=True, n_estimators=100)
 
 def heart():
@@ -150,8 +151,9 @@ def heart():
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
     y = np.array(df.loc[:, 'HeartDisease'])
     df = df.fillna(df.mean())
-    X = np.array(df.drop('HeartDisease', axis=1))
-    feature_names = df.columns
+    df = df.drop('HeartDisease', axis=1)
+    X = np.array(df)
+    feature_names = list(df.columns)
     correlation(X, y, 2, feature_names, 'heart disease', regression=False, n_estimators=10)
 
 if __name__ == '__main__':
@@ -164,5 +166,5 @@ if __name__ == '__main__':
     # cov()
     # stroke()
     # stars()
-    # wine_spanish()
-    heart()
+    wine_spanish()
+    # heart()

@@ -11,17 +11,17 @@ from _ft_contribution_classifier import GradientBoostingClassifier
 from _load_concrete import load_concrete
 
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True) -> None:
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10) -> None:
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
 
     if regression:
         reg = GradientBoostingRegressor(random_state=0,
-                                        n_estimators=10,
+                                        n_estimators=n_estimators,
                                         criterion=['friedman_mse', 'squared_error', 'mae'][1],
                                         max_depth=5)
     else:
-        reg = GradientBoostingClassifier(random_state=0, max_depth=5)
+        reg = GradientBoostingClassifier(random_state=0, max_depth=3, n_estimators=n_estimators)
     reg.fit(X_train, y_train)
     shap_explainer = shap.Explainer(reg)
     lime_explainer = lime_tabular.LimeTabularExplainer(
@@ -71,6 +71,7 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
                       pd.DataFrame(counter_shap),
                       pd.DataFrame(counter_lime)],
                     keys=['contribution', 'shap', 'lime']).reset_index()
+    print(data.shape)
     data.set_axis(['method', 'obs'] + feature_names, axis=1, copy=False)
     data.to_csv(f'../data/output/comparative_{name}.csv', index=False)
 
@@ -93,10 +94,35 @@ def wine():
     feature_names = load_wine()['feature_names']
     comparative(X, y, feature_names, 'wine', False)
 
+def stroke():
+    df = pd.read_csv('../../datasets/healthcare-dataset-stroke-data.csv', index_col=0)
+    cat_columns = df.select_dtypes(['object']).columns
+    df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    df = df.fillna(df.mean())
+    y = np.array(df.loc[:, 'stroke'])
+    df = df.drop('stroke', axis=1)
+    X = np.array(df)
+    feature_names = list(df.columns)
+    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20)
+
+def heart():
+    df = pd.read_csv('../../datasets/heart.csv')
+    cat_columns = df.select_dtypes(['object']).columns
+    df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    y = np.array(df.loc[:, 'HeartDisease'])
+    df = df.fillna(df.mean())
+    df = df.drop('HeartDisease', axis=1)
+    X = np.array(df)
+    feature_names = list(df.columns)
+    print(feature_names)
+    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10)
+
 
 if __name__ == '__main__': 
 
     # diabetes()
-    concrete()
+    # concrete()
     # wine()
+    heart()
+    # stroke()
 

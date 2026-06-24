@@ -129,23 +129,20 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 def diabetes(plotting=False):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-
-    correlation(X, y, 2, feature_names, 'diabetes', plotting=plotting)
-
+    correlation(X, y, 2, feature_names, 'diabetes', plotting=True)
 
 def concrete(plotting=False):
-
     X, y = load_concrete(return_X_y=True)
     feature_names = load_concrete()['feature_names']
     X = np.array(X)
     y = np.array(y)
 
-    correlation(X, y, 7, feature_names, 'concrete', plotting=plotting)
+    correlation(X, y, 7, feature_names, 'concrete', plotting=True)
 
 def housing(plotting=False):
     X, y = fetch_california_housing(return_X_y=True)
     feature_names = fetch_california_housing()['feature_names']
-    correlation(X, y, 0, feature_names, 'housing', n_estimators=20, plotting=plotting)
+    correlation(X, y, 0, feature_names, 'housing', n_estimators=20, plotting=True)
 
 def breasts(plotting=False):
     X, y = load_breast_cancer(return_X_y=True)

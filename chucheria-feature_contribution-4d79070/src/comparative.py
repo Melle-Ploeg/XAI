@@ -10,8 +10,9 @@ from _ft_contribution import GradientBoostingRegressor
 from _ft_contribution_classifier import GradientBoostingClassifier
 from _load_concrete import load_concrete
 
+import matplotlib.pyplot as plt
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10) -> None:
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, plotting = False) -> None:
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
 
@@ -60,18 +61,57 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         for col, val in lime_i:
             counter_lime[i, col] += val
 
+    if plotting:
+        attributions = {}
+        attributions["Contributions"] = []
+        attributions["Shapley"] = []
+        attributions["LIME"] = []
+        
+        old_prefix = ""
+        cont_avg = shap_avg = lime_avg = 0
+        original_feature_names = []
+
     print("col \t contribution \t shap \t lime")
     for j in range(X.shape[1]):
-        print(j,"\t",
-            np.mean(counter_cont, axis=0)[j], "\t",
-            np.mean(counter_shap, axis=0)[j], "\t",
-            np.mean(counter_lime, axis=0)[j])
+        feature_name = feature_names[j]
+
+        #Prefix in this context is the original name of the feature. So the one-hot encoded feature collumns 'sex)male' and 'sex)female' simply become 'sex'
+        prefix = feature_name.split(")")[0]
+
+        #
+        cont_avg += np.mean(np.abs(counter_cont), axis=0)[j]
+        shap_avg += np.mean(np.abs(counter_shap), axis=0)[j]
+        lime_avg += np.mean(np.abs(counter_lime), axis=0)[j]
+        if prefix != old_prefix:
+            print(j,"\t",
+                cont_avg, "\t",
+                shap_avg, "\t",
+                lime_avg)
+            if plotting:
+                attributions["Contributions"] += [cont_avg]
+                attributions["Shapley"] += [shap_avg]
+                attributions["LIME"] += [lime_avg]
+
+            original_feature_names += [prefix]
+            old_prefix = prefix
+            cont_avg = shap_avg = lime_avg = 0
+
+    #Construct graph
+    if plotting:
+        fig, ax = plt.subplots(layout="constrained")
+        ax.grouped_bar(attributions, tick_labels=original_feature_names, group_spacing=1)
+        ax.set_ylabel('Contribution')
+        ax.set_title("Different method's contributions by feature")
+        ax.legend(loc='upper left', ncols=3)
+
+        plt.show()
 
     data = pd.concat([pd.DataFrame(counter_cont),
                       pd.DataFrame(counter_shap),
                       pd.DataFrame(counter_lime)],
                     keys=['contribution', 'shap', 'lime']).reset_index()
     print(data.shape)
+    print(original_feature_names)
     data.set_axis(['method', 'obs'] + feature_names, axis=1, copy=False)
     data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
 
@@ -91,7 +131,8 @@ def concrete():
 def housing():
     X, y = fetch_california_housing(return_X_y=True)
     feature_names = fetch_california_housing()['feature_names']
-    comparative(X, y, 0, feature_names, 'housing', n_estimators=20)
+    print(feature_names)
+    comparative(X, y, feature_names, 'housing', n_estimators=20)
 
 def wine():
     X, y = load_wine(return_X_y=True)
@@ -103,7 +144,9 @@ def stroke():
     df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
-        df = pd.concat([df, pd.get_dummies(df[column])], axis=1)
+        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
+
+        df = pd.concat([df, dummies], axis=1)
         #print(df)
         df = df.drop(labels=column, axis=1)
     #df[cat_columns] = df[cat_columns].apply(lambda x: pd.get_dummies(x)[0])
@@ -111,9 +154,6 @@ def stroke():
     df = df.fillna(df.mean())
     y = np.array(df.loc[:, 'stroke'])
     df = df.drop('stroke', axis=1)
-    for i in range(len(df.keys())):
-        print(i)
-        print(df.keys()[i])
     X = np.array(df)
     feature_names = list(df.columns)
     comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20)
@@ -139,8 +179,8 @@ def heart():
 if __name__ == '__main__': 
 
     # diabetes()
-    # concrete()
+    concrete()
     # wine()
     # heart()
-    # stroke()
-    housing()
+    stroke()
+    # housing()

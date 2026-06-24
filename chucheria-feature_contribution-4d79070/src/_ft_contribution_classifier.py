@@ -36,7 +36,6 @@ class GradientBoostingClassifier(GradientBoostingClassifier):
 
         residuals = []
         explanations = []
-        print(self.estimators_.shape)
         if self.estimators_.shape[1] == 1:
             class_idx = 0   # Workaround for binary classification problems
         for estimator in self.estimators_[:, class_idx].ravel():

@@ -79,12 +79,10 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 def diabetes():
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-
     correlation(X, y, 2, feature_names, 'diabetes')
 
 
 def concrete():
-
     X, y = load_concrete(return_X_y=True)
     feature_names = load_concrete()['feature_names']
     X = np.array(X)
@@ -95,6 +93,7 @@ def concrete():
 def housing():
     X, y = fetch_california_housing(return_X_y=True)
     feature_names = fetch_california_housing()['feature_names']
+    print(feature_names)
     correlation(X, y, 0, feature_names, 'housing', n_estimators=20)
 
 def breasts():
@@ -160,11 +159,11 @@ if __name__ == '__main__':
 
     # diabetes()
     # concrete()
-    # housing()
+    housing()
     # breasts()
     # wine()
     # cov()
     # stroke()
     # stars()
-    wine_spanish()
+    # wine_spanish()
     # heart()

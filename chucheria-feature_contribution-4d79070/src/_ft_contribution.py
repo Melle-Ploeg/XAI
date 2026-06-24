@@ -35,7 +35,6 @@ class GradientBoostingRegressor(GradientBoostingRegressor):
 
         residuals = []
         explanations = []
-        print(self.estimators_.shape)
 
         for estimator in self.estimators_[:, class_idx].ravel():
             tree = estimator

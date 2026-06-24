@@ -116,36 +116,35 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
 
 
-def diabetes():
+def diabetes(plotting=False):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    comparative(X, y, feature_names, 'diabetes')
+    comparative(X, y, feature_names, 'diabetes', plotting=plotting)
 
 
-def concrete():
+def concrete(plotting=False):
     X, y = load_concrete(return_X_y=True)
     X,y = np.array(X), np.array(y)
     feature_names = load_concrete()['feature_names']
-    comparative(X, y, feature_names, 'concrete')
+    comparative(X, y, feature_names, 'concrete', plotting=plotting)
 
-def housing():
+def housing(plotting=False):
     X, y = fetch_california_housing(return_X_y=True)
     feature_names = fetch_california_housing()['feature_names']
     print(feature_names)
-    comparative(X, y, feature_names, 'housing', n_estimators=20)
+    comparative(X, y, feature_names, 'housing', n_estimators=20, plotting=plotting)
 
-def wine():
+def wine(plotting=False):
     X, y = load_wine(return_X_y=True)
     X,y = np.array(X), np.array(y)
     feature_names = load_wine()['feature_names']
-    comparative(X, y, feature_names, 'wine', False)
+    comparative(X, y, feature_names, 'wine', False, plotting=plotting)
 
-def stroke():
+def stroke(plotting=False):
     df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
         dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
-
         df = pd.concat([df, dummies], axis=1)
         #print(df)
         df = df.drop(labels=column, axis=1)
@@ -156,13 +155,14 @@ def stroke():
     df = df.drop('stroke', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
-    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20)
+    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
 
-def heart():
+def heart(plotting=False):
     df = pd.read_csv('./datasets/heart.csv')
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
-        df = pd.concat([df, pd.get_dummies(df[column])], axis=1)
+        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
+        df = pd.concat([df, dummies], axis=1)
         #print(df)
         df = df.drop(labels=column, axis=1)
     #df[cat_columns] = df[cat_columns].apply(lambda x: pd.get_dummies(x)[0])
@@ -173,14 +173,14 @@ def heart():
     X = np.array(df)
     feature_names = list(df.columns)
     print(feature_names)
-    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10)
+    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10, plotting=plotting)
 
 
 if __name__ == '__main__': 
 
     # diabetes()
-    concrete()
+    # concrete()
     # wine()
-    # heart()
-    stroke()
-    # housing()
+    # heart(True)
+    # stroke()
+    housing(True)

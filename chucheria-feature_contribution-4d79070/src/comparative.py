@@ -2,7 +2,7 @@ import numpy as np
 from lime import lime_tabular
 import pandas as pd
 from scipy.sparse import dia
-from sklearn.datasets import load_diabetes, load_wine
+from sklearn.datasets import load_diabetes, fetch_california_housing, load_breast_cancer, load_wine, fetch_covtype
 from sklearn.model_selection import train_test_split
 import shap
 
@@ -60,7 +60,7 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         for col, val in lime_i:
             counter_lime[i, col] += val
 
-    print("col \t conttribution \t shap \t lime")
+    print("col \t contribution \t shap \t lime")
     for j in range(X.shape[1]):
         print(j,"\t",
             np.mean(counter_cont, axis=0)[j], "\t",
@@ -73,7 +73,7 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
                     keys=['contribution', 'shap', 'lime']).reset_index()
     print(data.shape)
     data.set_axis(['method', 'obs'] + feature_names, axis=1, copy=False)
-    data.to_csv(f'../data/output/comparative_{name}.csv', index=False)
+    data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
 
 
 def diabetes():
@@ -88,6 +88,11 @@ def concrete():
     feature_names = load_concrete()['feature_names']
     comparative(X, y, feature_names, 'concrete')
 
+def housing():
+    X, y = fetch_california_housing(return_X_y=True)
+    feature_names = fetch_california_housing()['feature_names']
+    comparative(X, y, 0, feature_names, 'housing', n_estimators=20)
+
 def wine():
     X, y = load_wine(return_X_y=True)
     X,y = np.array(X), np.array(y)
@@ -95,22 +100,35 @@ def wine():
     comparative(X, y, feature_names, 'wine', False)
 
 def stroke():
-    df = pd.read_csv('../../datasets/healthcare-dataset-stroke-data.csv', index_col=0)
+    df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
-    df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    for column in cat_columns:
+        df = pd.concat([df, pd.get_dummies(df[column])], axis=1)
+        #print(df)
+        df = df.drop(labels=column, axis=1)
+    #df[cat_columns] = df[cat_columns].apply(lambda x: pd.get_dummies(x)[0])
+    #print(df.head())
     df = df.fillna(df.mean())
     y = np.array(df.loc[:, 'stroke'])
     df = df.drop('stroke', axis=1)
+    for i in range(len(df.keys())):
+        print(i)
+        print(df.keys()[i])
     X = np.array(df)
     feature_names = list(df.columns)
     comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20)
 
 def heart():
-    df = pd.read_csv('../../datasets/heart.csv')
+    df = pd.read_csv('./datasets/heart.csv')
     cat_columns = df.select_dtypes(['object']).columns
-    df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    for column in cat_columns:
+        df = pd.concat([df, pd.get_dummies(df[column])], axis=1)
+        #print(df)
+        df = df.drop(labels=column, axis=1)
+    #df[cat_columns] = df[cat_columns].apply(lambda x: pd.get_dummies(x)[0])
+    print(df.head())
     y = np.array(df.loc[:, 'HeartDisease'])
-    df = df.fillna(df.mean())
+    #df = df.fillna(df.mean())
     df = df.drop('HeartDisease', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
@@ -123,6 +141,6 @@ if __name__ == '__main__':
     # diabetes()
     # concrete()
     # wine()
-    heart()
+    # heart()
     # stroke()
-
+    housing()

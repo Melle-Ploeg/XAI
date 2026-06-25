@@ -77,7 +77,7 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
     df = df.join(pd.DataFrame(counter), how="right")
     columns = ["Original"] + [f'Random #{i + 1}' for i in range(levels)]
     df.columns = columns
-    df = df.set_axis(feature_names + ['correlated'], axis=0)
+    df = df.set_axis(list(feature_names) + ['correlated'], axis=0)
     print(df.to_string())
 
     if plotting:
@@ -96,8 +96,6 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 
             pair = pd.concat([original_feature, pair])#, columns=[pair.columns])
 
-            print(pair)
-            print("skoop di woop")
             for x in range(2):
                 graph_name = columns[y+x*3]
                 values = pair.loc[:, graph_name]
@@ -114,11 +112,6 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
                     values = values[:7] + [misc_values]
                     feature_names = feature_names[:7] + [np.str_("Misc features")]
                     #np.append(feature_names[:7], + np.array(["Misc features"]))
-                
-                print(feature_names)
-                print(values) #Dit is er een teveel????
-                print(len(feature_names))
-                print(len(values))
 
                 location = (x, y)
                 top_off = np.zeros(min(8, len(values)))
@@ -138,7 +131,7 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 def diabetes(plotting=False):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    print(feature_names)
+    #print(feature_names)
     correlation(X, y, 8, feature_names, 'diabetes', plotting=True)
 #8, 2
 def concrete(plotting=False):
@@ -179,6 +172,8 @@ def stroke(plotting=False):
     X = np.array(df.loc[:, df.columns != 'stroke'])
     y = np.array(df.loc[:, 'stroke'])
     feature_names = df.columns
+    # print(feature_names)
+    # print(list(feature_names))
     correlation(X, y, 1, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
 
 def stars(plotting=False):
@@ -211,7 +206,7 @@ def heart(plotting=False):
     df = df.drop('HeartDisease', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
-    correlation(X, y, 2, feature_names, 'heart disease', regression=False, n_estimators=10, plotting=plotting)
+    correlation(X, y, 10, feature_names, 'heart disease', regression=False, n_estimators=10, plotting=plotting)
 
 if __name__ == '__main__':
 
@@ -221,7 +216,7 @@ if __name__ == '__main__':
     # breasts(True)
     # wine()
     # cov()
-    stroke(True)
+    # stroke(True)
     heart(True)
     # stars()
     # wine_spanish()

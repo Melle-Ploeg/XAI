@@ -22,7 +22,8 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1,
                                                    random_state=28)
     if regression:
-        reg = GradientBoostingRegressor(random_state=0, n_estimators=n_estimators, max_depth=max_depth)
+        reg = GradientBoostingRegressor(random_state=0, n_estimators=n_estimators, max_depth=max_depth, 
+                                        criterion=['friedman_mse', 'squared_error', 'mae'][1])
     else:
         reg = GradientBoostingClassifier(random_state=0, n_estimators=n_estimators, max_depth=max_depth)
     reg.fit(X_train, y_train)
@@ -39,12 +40,13 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
     for sample_residuos in residuos:
         for col, val in zip(cols, sample_residuos):
             if ~np.isnan(val) and val != 0:
-                counter[col] += val / X_test.shape[0]
+                counter[col] += abs(val) / X_test.shape[0]
 
     df = pd.DataFrame(counter.values(), index=counter.keys(), 
                       columns=["Original"])
 
-    print(f"Create new column 10 correlated with column {feature_names[column]}\n")
+    correl_feature = feature_names[column]
+    print(f"Create new column 10 correlated with column {correl_feature}\n")
     alfa = random.random()
     beta = random.random()
     X_train = np.column_stack((X_train, alfa * X_train[:, column] + beta))
@@ -69,13 +71,14 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
         for sample_residuos in residuos:
             for col, val in zip(cols, sample_residuos):
                 if ~np.isnan(val) and val != 0:
-                    counter[col, z] += val / X_test.shape[0]
+                    counter[col, z] += abs(val) / X_test.shape[0]
         #print("Did one!")
 
     df = df.join(pd.DataFrame(counter), how="right")
     columns = ["Original"] + [f'Random #{i + 1}' for i in range(levels)]
     df.columns = columns
     df = df.set_axis(feature_names + ['correlated'], axis=0)
+    print(df.to_string())
 
     if plotting:
         figs, axes = plt.subplots(2, 3, sharex=True, sharey=True)
@@ -83,11 +86,18 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
             graph_names = [columns[y], columns[y+3]]
 
             pair = df.loc[:, graph_names]
+            print(pair)
             correlated = list(pair.loc["correlated"])
+            original_feature = pd.DataFrame(pair.loc[correl_feature]).T
             pair = pair.drop("correlated")
+            pair = pair.drop(correl_feature)
 
             pair = pair.sort_values(by=columns[y], key=abs, ascending=False)
 
+            pair = pd.concat([original_feature, pair])#, columns=[pair.columns])
+
+            print(pair)
+            print("skoop di woop")
             for x in range(2):
                 graph_name = columns[y+x*3]
                 values = pair.loc[:, graph_name]
@@ -122,15 +132,15 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 
         plt.show()
 
-    print(df.to_string())
     df.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/correlation_{name}.csv', index_label='col')
 
 
 def diabetes(plotting=False):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    correlation(X, y, 2, feature_names, 'diabetes', plotting=True)
-
+    print(feature_names)
+    correlation(X, y, 8, feature_names, 'diabetes', plotting=True)
+#8, 2
 def concrete(plotting=False):
     X, y = load_concrete(return_X_y=True)
     feature_names = load_concrete()['feature_names']
@@ -205,13 +215,14 @@ def heart(plotting=False):
 
 if __name__ == '__main__':
 
-    # diabetes()
-    # concrete()
+    # diabetes(True)
+    # concrete(True)
     # housing()
-    breasts(True)
+    # breasts(True)
     # wine()
     # cov()
-    # stroke()
+    stroke(True)
+    heart(True)
     # stars()
     # wine_spanish()
     # heart()

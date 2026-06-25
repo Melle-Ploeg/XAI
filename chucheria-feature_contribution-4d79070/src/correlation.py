@@ -22,7 +22,7 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1,
                                                    random_state=28)
     if regression:
-        reg = GradientBoostingRegressor(random_state=0, n_estimators=n_estimators, max_depth=max_depth, 
+        reg = GradientBoostingRegressor(random_state=0, n_estimators=n_estimators, max_depth=max_depth,
                                         criterion=['friedman_mse', 'squared_error', 'mae'][1])
     else:
         reg = GradientBoostingClassifier(random_state=0, n_estimators=n_estimators, max_depth=max_depth)
@@ -86,7 +86,6 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
             graph_names = [columns[y], columns[y+3]]
 
             pair = df.loc[:, graph_names]
-            print(pair)
             correlated = list(pair.loc["correlated"])
             original_feature = pd.DataFrame(pair.loc[correl_feature]).T
             pair = pair.drop("correlated")
@@ -125,7 +124,8 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
 
         plt.show()
 
-    df.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/correlation_{name}.csv', index_label='col')
+    print(df.to_string())
+    df.to_csv(f'../data/output/correlation_{name}.csv', index_label='col')
 
 
 def diabetes(plotting=False):
@@ -164,7 +164,7 @@ def cov(plotting=False):
     correlation(X, y, 10, feature_names, 'cov', False, plotting=plotting)
 
 def stroke(plotting=False):
-    df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
+    df = pd.read_csv('../../datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     print(df)
     cat_columns = df.select_dtypes(['object']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
@@ -172,12 +172,10 @@ def stroke(plotting=False):
     X = np.array(df.loc[:, df.columns != 'stroke'])
     y = np.array(df.loc[:, 'stroke'])
     feature_names = df.columns
-    # print(feature_names)
-    # print(list(feature_names))
     correlation(X, y, 1, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
 
-def stars(plotting=False):
-    df = pd.read_csv('./datasets/star_classification.csv', index_col=0)
+def stars():
+    df = pd.read_csv('../../datasets/star_classification.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
     X = np.array(df.loc[:, df.columns != 'class'])
@@ -185,8 +183,8 @@ def stars(plotting=False):
     feature_names = df.columns
     correlation(X, y, 1, feature_names, 'stars', regression=False, n_estimators=100, plotting=plotting)
 
-def wine_spanish(plotting=False):
-    df = pd.read_csv('./datasets/wines_SPA.csv')
+def wine_spanish():
+    df = pd.read_csv('../../datasets/wines_SPA.csv')
     df = df.drop('country', axis=1)
     cat_columns = df.select_dtypes(['object']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
@@ -197,8 +195,8 @@ def wine_spanish(plotting=False):
     feature_names = list(df.columns)
     correlation(X, y, 2, feature_names, 'wine', regression=True, n_estimators=100, plotting=plotting)
 
-def heart(plotting=False):
-    df = pd.read_csv('./datasets/heart.csv')
+def heart():
+    df = pd.read_csv('../../datasets/heart.csv')
     cat_columns = df.select_dtypes(['object']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: pd.factorize(x)[0])
     y = np.array(df.loc[:, 'HeartDisease'])
@@ -212,12 +210,13 @@ if __name__ == '__main__':
 
     # diabetes(True)
     # concrete(True)
+    diabetes()
+    # concrete()
     # housing()
     # breasts(True)
     # wine()
     # cov()
-    # stroke(True)
-    heart(True)
+    # stroke()
     # stars()
     # wine_spanish()
     # heart()

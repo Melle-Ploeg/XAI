@@ -12,7 +12,7 @@ from _load_concrete import load_concrete
 
 import matplotlib.pyplot as plt
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, plotting = False) -> None:
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, max_depth=3, plotting = False) -> None:
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
 
@@ -20,9 +20,9 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         reg = GradientBoostingRegressor(random_state=0,
                                         n_estimators=n_estimators,
                                         criterion=['friedman_mse', 'squared_error', 'mae'][1],
-                                        max_depth=5)
+                                        max_depth=max_depth)
     else:
-        reg = GradientBoostingClassifier(random_state=0, max_depth=3, n_estimators=n_estimators)
+        reg = GradientBoostingClassifier(random_state=0, n_estimators=n_estimators, max_depth=max_depth)
     reg.fit(X_train, y_train)
     shap_explainer = shap.Explainer(reg)
     lime_explainer = lime_tabular.LimeTabularExplainer(
@@ -67,9 +67,9 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         attributions["Shapley"] = []
         attributions["LIME"] = []
         
-        old_prefix = ""
-        cont_avg = shap_avg = lime_avg = 0
-        original_feature_names = []
+    old_prefix = ""
+    original_feature_names = []
+    cont_avg = shap_avg = lime_avg = 0
 
     print("col \t contribution \t shap \t lime")
     for j in range(X.shape[1]):
@@ -103,6 +103,7 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         ax.set_ylabel('Contribution')
         ax.set_title("Different method's contributions by feature")
         ax.legend(loc='upper left', ncols=3)
+        ax.set_xticks(ax.get_xticks(), labels=original_feature_names, rotation=45, snap=True, rotation_mode="anchor", ha="right")
 
         plt.show()
 
@@ -133,6 +134,12 @@ def housing(plotting=False):
     feature_names = fetch_california_housing()['feature_names']
     print(feature_names)
     comparative(X, y, feature_names, 'housing', n_estimators=20, plotting=plotting)
+
+def breasts(plotting=False):
+    X, y = load_breast_cancer(return_X_y=True)
+    print(X.shape)
+    feature_names = list(load_breast_cancer()['feature_names'])
+    comparative(X, y, feature_names, 'breasts', False, n_estimators=200, max_depth=20, plotting=plotting)
 
 def wine(plotting=False):
     X, y = load_wine(return_X_y=True)
@@ -178,9 +185,10 @@ def heart(plotting=False):
 
 if __name__ == '__main__': 
 
-    # diabetes()
-    # concrete()
+    # diabetes(True)
+    # concrete(True)
+    #breasts(True)
     # wine()
     # heart(True)
-    # stroke()
-    housing(True)
+    stroke(True)
+    # housing(True)

@@ -12,9 +12,14 @@ from _load_concrete import load_concrete
 
 import matplotlib.pyplot as plt
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, max_depth=3, plotting = False) -> None:
-    X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.1, 
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, max_depth=3, plotting = False, single_val = -1) -> None:
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, 
                                                    random_state=28)
+
+    #If single_num is -1, take whole y_test, otherwise pick singular value
+    if single_val+1:
+        X_test = np.array([X_test[single_val]])
+        y_test = np.array([y_test[single_val]])
 
     if regression:
         reg = GradientBoostingRegressor(random_state=0,
@@ -101,7 +106,9 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         fig, ax = plt.subplots(layout="constrained")
         ax.grouped_bar(attributions, tick_labels=original_feature_names, group_spacing=1)
         ax.set_ylabel('Contribution')
-        ax.set_title("Different method's contributions by feature")
+        if single_val+1:
+            ax.set_title("Different method's contributions at index " + str(single_val) + ", label: " + str(y_test[0]))
+        else: ax.set_title("Different method's contributions by feature")
         ax.legend(loc='upper left', ncols=3)
         ax.set_xticks(ax.get_xticks(), labels=original_feature_names, rotation=45, snap=True, rotation_mode="anchor", ha="right")
 
@@ -117,37 +124,37 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
 
 
-def diabetes(plotting=False):
+def diabetes(plotting=False, single_val=-1):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    comparative(X, y, feature_names, 'diabetes', plotting=plotting)
+    comparative(X, y, feature_names, 'diabetes', plotting=plotting, single_val=single_val)
 
 
-def concrete(plotting=False):
+def concrete(plotting=False, single_val=-1):
     X, y = load_concrete(return_X_y=True)
     X,y = np.array(X), np.array(y)
     feature_names = load_concrete()['feature_names']
-    comparative(X, y, feature_names, 'concrete', plotting=plotting)
+    comparative(X, y, feature_names, 'concrete', plotting=plotting, single_val=single_val)
 
-def housing(plotting=False):
+def housing(plotting=False, single_val=-1):
     X, y = fetch_california_housing(return_X_y=True)
     feature_names = fetch_california_housing()['feature_names']
     print(feature_names)
-    comparative(X, y, feature_names, 'housing', n_estimators=20, plotting=plotting)
+    comparative(X, y, feature_names, 'housing', n_estimators=20, plotting=plotting, single_val=single_val)
 
-def breasts(plotting=False):
+def breasts(plotting=False, single_val=-1):
     X, y = load_breast_cancer(return_X_y=True)
     print(X.shape)
     feature_names = list(load_breast_cancer()['feature_names'])
-    comparative(X, y, feature_names, 'breasts', False, n_estimators=200, max_depth=20, plotting=plotting)
+    comparative(X, y, feature_names, 'breasts', False, n_estimators=200, max_depth=20, plotting=plotting, single_val=single_val)
 
-def wine(plotting=False):
+def wine(plotting=False, single_val=-1):
     X, y = load_wine(return_X_y=True)
     X,y = np.array(X), np.array(y)
     feature_names = load_wine()['feature_names']
-    comparative(X, y, feature_names, 'wine', False, plotting=plotting)
+    comparative(X, y, feature_names, 'wine', False, plotting=plotting, single_val=single_val)
 
-def stroke(plotting=False):
+def stroke(plotting=False, single_val=-1):
     df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
@@ -162,9 +169,9 @@ def stroke(plotting=False):
     df = df.drop('stroke', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
-    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
+    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting, single_val=single_val)
 
-def heart(plotting=False):
+def heart(plotting=False, single_val=-1):
     df = pd.read_csv('./datasets/heart.csv')
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
@@ -180,15 +187,16 @@ def heart(plotting=False):
     X = np.array(df)
     feature_names = list(df.columns)
     print(feature_names)
-    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10, plotting=plotting)
+    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10, plotting=plotting, single_val=single_val)
 
 
 if __name__ == '__main__': 
 
-    # diabetes(True)
+    diabetes(True, 5)
+
     # concrete(True)
     #breasts(True)
     # wine()
     # heart(True)
-    stroke(True)
+    # stroke(True)
     # housing(True)

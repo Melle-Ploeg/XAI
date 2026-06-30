@@ -1,5 +1,7 @@
+import math
 from collections import defaultdict
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_diabetes, fetch_california_housing, load_breast_cancer, load_wine
@@ -27,12 +29,13 @@ def something(X: np.array, y: np.array, n_estimators=10, regression=True, max_de
     for sample_residuos in residuos:
         for col, val in zip(cols, sample_residuos):
             if ~np.isnan(val) and val != 0:
-                counter[col] += val / X_test.shape[0]
+                counter[col] += abs(val) / X_test.shape[0]
 
     return counter
 
 def noise(X, y, feature_names, name, column, n_estimators=10, n_experiments=20, regression=True, max_depth=2):
-    levels = [0, 100, 200, 300, 400]
+    # levels = [0, 100, 200, 300, 400]
+    levels = [0, 50, 100, 200, 300]
     counter = np.zeros((X.shape[1], len(levels), n_experiments))
 
     for j in range(n_experiments):
@@ -49,22 +52,49 @@ def noise(X, y, feature_names, name, column, n_estimators=10, n_experiments=20, 
                 counter[col, i, j] += val
 
     mean_df = pd.DataFrame(counter.mean(axis=2),
-                           columns=[f'Noise %{i}' for i in levels],
+                           columns=[f'%{i}' for i in levels],
                            index=feature_names)
 
     std_df = pd.DataFrame(counter.std(axis=2),
-                          columns=[f'Noise %{i}' for i in levels],
+                          columns=[f'%{i}' for i in levels],
                           index=feature_names)
 
     data = pd.concat([mean_df, std_df], axis=1, keys=['mean', 'std'])
     print(data)
     data.stack().to_csv(f'../data/output/noise_{name}.csv',
                         index_label=['col', 'name'])
+    plot(mean_df, std_df, name)
+
+def plot(means, stds, name):
+    n_cols = math.ceil(means.shape[0] / 2)
+    fig, axes = plt.subplots(2, n_cols, sharex=True, sharey=True)
+    plt.rcParams['font.size'] = 6
+    feature_id = 0
+    noise_levels = means.columns
+    for x in range(2):
+        for y in range(n_cols):
+            location = (x, y)
+            if feature_id >= means.shape[0]:
+                axes[location].set_xticks(noise_levels, labels=noise_levels, rotation=45, snap=True,
+                                          rotation_mode="anchor", ha="right")
+                break
+            mean_vals = means.iloc[feature_id, :]
+            std_vals = stds.iloc[feature_id, :]
+            axes[location].bar(noise_levels, list(mean_vals))
+            if any(error > 0.001 for error in std_vals):
+                axes[location].errorbar(noise_levels, list(mean_vals), yerr=list(std_vals), fmt='|', color='k')
+            axes[location].set_title(means.index[feature_id])
+            axes[location].set_xticks(axes[location].get_xticks(), labels=noise_levels, rotation=45, snap=True,
+                                      rotation_mode="anchor", ha="right")
+            feature_id += 1
+    fig.suptitle(name)
+    plt.show()
+
 
 def diabetes():
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    noise(X, y, feature_names, "diabetes", 2, n_experiments=100)
+    noise(X, y, feature_names, "diabetes", 2, n_experiments=30)
 
 def concrete():
     X, y = load_concrete(return_X_y=True)
@@ -109,7 +139,7 @@ def wine_spanish():
     df = df.drop('price', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
-    noise(X, y, feature_names, "wine_spanish", column=2, n_estimators=10, n_experiments=20)
+    noise(X, y, feature_names, "wine_spanish", column=1, n_estimators=20, max_depth=3, n_experiments=20)
 
 def heart():
     df = pd.read_csv('../../datasets/heart.csv')
@@ -124,12 +154,12 @@ def heart():
 
 if __name__ == '__main__':
 
-    # diabetes()
-    # concrete()
-    # housing()
-    # wine_spanish()
-    # breasts()
-    # wine()
+    diabetes()
+    concrete()
+    housing()
+    wine_spanish()
+    breasts()
+    wine()
     stroke()
     heart()
 

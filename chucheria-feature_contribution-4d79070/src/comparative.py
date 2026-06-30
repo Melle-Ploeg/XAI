@@ -4,6 +4,8 @@ import pandas as pd
 from scipy.sparse import dia
 from sklearn.datasets import load_diabetes, fetch_california_housing, load_breast_cancer, load_wine, fetch_covtype
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
 import shap
 
 from _ft_contribution import GradientBoostingRegressor
@@ -114,7 +116,38 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     print(data.shape)
     print(original_feature_names)
     data.set_axis(['method', 'obs'] + feature_names, axis=1, copy=False)
-    data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
+    data.to_csv(f'../../chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
+
+# Find a hard-to-classify sample
+def find_sample(X, y):
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    ratios = []
+    nbrs = NearestNeighbors(n_neighbors=5000, n_jobs=-1).fit(X_scaled)
+    distances, indices = nbrs.kneighbors(X_scaled)
+    for i in range(len(X_scaled)):
+        nbrs_found = 0
+        # Find intra neighbour
+        intra = 0
+        for j in range(1, len(distances[i])):
+            if y[indices[i][j]] == y[i]:
+                intra = distances[i][j]
+                nbrs_found += 1
+                break
+        # Find inter neighbour
+        inter = 0
+        for j in range(len(distances[i])):
+            if y[indices[i][j]] != y[i]:
+                if distances[i][j] == 0:
+                    inter = 100000  # To avoid division by 0
+                else:
+                    inter = distances[i][j]
+                nbrs_found += 1
+                break
+        if nbrs_found != 2:
+            print("WARNING: could not find inter and intra distances for all X, increase n_neighbors")
+        ratios.append(intra / inter)
+    return X[np.argmax(ratios)]
 
 
 def diabetes(plotting=False):
@@ -148,7 +181,7 @@ def wine(plotting=False):
     comparative(X, y, feature_names, 'wine', False, plotting=plotting)
 
 def stroke(plotting=False):
-    df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
+    df = pd.read_csv('../../datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
         dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
@@ -163,6 +196,7 @@ def stroke(plotting=False):
     X = np.array(df)
     feature_names = list(df.columns)
     comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
+    print("Hard to classify sample: ", find_sample(X, y))
 
 def heart(plotting=False):
     df = pd.read_csv('./datasets/heart.csv')

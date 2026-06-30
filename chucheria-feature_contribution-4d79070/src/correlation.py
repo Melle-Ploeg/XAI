@@ -110,19 +110,19 @@ def correlation(X: np.array, y: np.array, column: int, feature_names: list,
                 if feature_count > 7:
                     misc_values = sum(values[7:])
                     values = values[:7] + [misc_values]
-                    feature_names = feature_names[:7] + [np.str_("Misc features")]
+                    feature_names = feature_names[:7] + [np.str_("Misc")]
                     #np.append(feature_names[:7], + np.array(["Misc features"]))
 
                 location = (x, y)
                 top_off = np.zeros(min(8, len(values)))
                 top_off[0] = correlated[x]
-                axes[location].bar(feature_names, values, width=0.3, label="original")
-                axes[location].bar(feature_names, top_off, width=0.3, label="correlated", bottom=values[0])
+                axes[location].bar(feature_names, values, width=0.8, label="original")
+                axes[location].bar(feature_names, top_off, width=0.8, label="correlated", bottom=values[0])
 
                 axes[location].set_xticks(axes[location].get_xticks(), labels=feature_names, rotation=45, snap=True, rotation_mode="anchor", ha="right")
 
                 #plt.xticks(axes[location].get_xticks(), feature_names, rotation=45, snap=True, rotation_mode="anchor", ha="right")
-
+        figs.suptitle("Correlation on " + name)
         plt.show()
 
     df.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/correlation_{name}.csv', index_label='col')
@@ -171,7 +171,7 @@ def stroke(plotting=False):
     df = df.fillna(df.mean())
     X = np.array(df.loc[:, df.columns != 'stroke'])
     y = np.array(df.loc[:, 'stroke'])
-    feature_names = df.columns
+    feature_names = df.columns[:-1]
     # print(feature_names)
     # print(list(feature_names))
     correlation(X, y, 1, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)
@@ -212,11 +212,11 @@ if __name__ == '__main__':
 
     # diabetes(True)
     # concrete(True)
-    # housing()
+    # housing(True)
     # breasts(True)
     # wine()
     # cov()
-    # stroke(True)
+    stroke(True)
     heart(True)
     # stars()
     # wine_spanish()

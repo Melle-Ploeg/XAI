@@ -14,14 +14,29 @@ from _load_concrete import load_concrete
 
 import matplotlib.pyplot as plt
 
-def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, max_depth=3, plotting = False, single_val = -1) -> None:
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, 
-                                                   random_state=28)
+def comparative(X: np.array, y: np.array, feature_names: list, name: str, regression=True, n_estimators=10, max_depth=3, plotting = False, single_val = -1, outlier=False) -> None:
 
     #If single_num is -1, take whole y_test, otherwise pick singular value
     if single_val+1:
-        X_test = np.array([X_test[single_val]])
-        y_test = np.array([y_test[single_val]])
+        X_test = np.array([X[single_val]])
+        y_test = np.array([y[single_val]])
+        X = np.concatenate([X[:single_val], X[single_val+1:]])
+        y = np.concatenate([y[:single_val], y[single_val+1:]])
+        X_train, _, y_train, _ = train_test_split(X, y, test_size=0.1, 
+                                                   random_state=28)
+    elif outlier:
+        X_test = np.array([np.mean(X, axis=0)])
+        X_test[0, 1] = np.max(X[:, 1]) + np.std(X[:, 1])
+        y_test = np.array([np.max(y) + np.std(y)])#np.array([np.median(y, axis=0)])
+        X_train, _, y_train, _ = train_test_split(X, y, test_size=0.1, 
+                                                   random_state=28)
+        X_train = np.concatenate([X_train, X_test])
+        y_train = np.concatenate([y_train, y_test])
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, 
+                                                   random_state=28)
+    
+
 
     if regression:
         reg = GradientBoostingRegressor(random_state=0,
@@ -31,12 +46,30 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     else:
         reg = GradientBoostingClassifier(random_state=0, n_estimators=n_estimators, max_depth=max_depth)
     reg.fit(X_train, y_train)
-    shap_explainer = shap.Explainer(reg)
+    mask = shap.maskers.Independent(X_train)
+    mask  = np.array([np.mean(X_train, axis=0)])
+    # print(mask)
+    # print(mask.shape)
+    # print(X_test.shape)
+    # for i in range(20):
+    #     print(X_train[0][i].dtype)
+    # for i in range(20):
+    #     print(X_test[0][i].dtype)
+    #print(mask.shape)
+    if regression:
+        shap_explainer = shap.Explainer(reg)#mask)
+    else:
+        shap_explainer = shap.Explainer((lambda x: reg.predict_proba(x)[:,1]), mask)
     lime_explainer = lime_tabular.LimeTabularExplainer(
         X_train, 
         feature_names=[str(i) for i in range(X.shape[1])],
         verbose=False, mode='regression'
     )
+
+    if single_val+1:
+        print("Predicted:", reg.predict(X_test)[0])
+        print("Predicted odds:", reg.predict_proba(X_test))
+        print("Predicted log", reg.predict_log_proba(X_test))
 
     print("Compare with SHAP and LIME")
 
@@ -46,6 +79,7 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
 
     _, residuos, explanations = reg.decision_path(X_test)
     shap_values = shap_explainer(X_test)
+    print(shap_values)
     lime_values = []
     for i in range(X_test.shape[0]):
         value = lime_explainer.explain_instance(X_test[i], reg.predict)
@@ -71,8 +105,8 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     if plotting:
         attributions = {}
         attributions["Contributions"] = []
-        attributions["Shapley"] = []
-        attributions["LIME"] = []
+        attributions["SHAP"] = []
+        #attributions["LIME"] = []
         
     old_prefix = ""
     original_feature_names = []
@@ -85,10 +119,15 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         #Prefix in this context is the original name of the feature. So the one-hot encoded feature collumns 'sex)male' and 'sex)female' simply become 'sex'
         prefix = feature_name.split(")")[0]
 
-        #
-        cont_avg += np.mean(np.abs(counter_cont), axis=0)[j]
-        shap_avg += np.mean(np.abs(counter_shap), axis=0)[j]
-        lime_avg += np.mean(np.abs(counter_lime), axis=0)[j]
+            
+        if single_val+1 or outlier:
+            cont_avg += counter_cont[0][j]
+            shap_avg += counter_shap[0][j]
+            lime_avg += counter_lime[0][j]
+        else:
+            cont_avg += np.mean(np.abs(counter_cont), axis=0)[j]
+            shap_avg += np.mean(np.abs(counter_shap), axis=0)[j]
+            lime_avg += np.mean(np.abs(counter_lime), axis=0)[j]
         if prefix != old_prefix:
             print(j,"\t",
                 cont_avg, "\t",
@@ -96,8 +135,8 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
                 lime_avg)
             if plotting:
                 attributions["Contributions"] += [cont_avg]
-                attributions["Shapley"] += [shap_avg]
-                attributions["LIME"] += [lime_avg]
+                attributions["SHAP"] += [shap_avg]
+                #attributions["LIME"] += [lime_avg]
 
             original_feature_names += [prefix]
             old_prefix = prefix
@@ -109,7 +148,9 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
         ax.grouped_bar(attributions, tick_labels=original_feature_names, group_spacing=1)
         ax.set_ylabel('Contribution')
         if single_val+1:
-            ax.set_title("Different method's contributions at index " + str(single_val) + ", label: " + str(y_test[0]))
+            ax.set_title("Different method's contributions at index " + str(single_val) + ", label: " + str(y_test[0]) + ", pred:" + str(np.round(reg.predict_proba(X_test)[0][1], 2)))
+        elif outlier:
+            ax.set_title("Contributions on outlier")
         else: ax.set_title("Different method's contributions by feature")
         ax.legend(loc='upper left', ncols=3)
         ax.set_xticks(ax.get_xticks(), labels=original_feature_names, rotation=45, snap=True, rotation_mode="anchor", ha="right")
@@ -119,18 +160,19 @@ def comparative(X: np.array, y: np.array, feature_names: list, name: str, regres
     data = pd.concat([pd.DataFrame(counter_cont),
                       pd.DataFrame(counter_shap),
                       pd.DataFrame(counter_lime)],
-                    keys=['contribution', 'shap', 'lime']).reset_index()
+                    keys=['contribution', 'SHAP', 'lime']).reset_index()
     print(data.shape)
     print(original_feature_names)
     data.set_axis(['method', 'obs'] + feature_names, axis=1, copy=False)
-    data.to_csv(f'../../chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
+    data.to_csv(f'./chucheria-feature_contribution-4d79070/data/output/comparative_{name}.csv', index=False)
 
 # Find a hard-to-classify sample
 def find_sample(X, y):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     ratios = []
-    nbrs = NearestNeighbors(n_neighbors=5000, n_jobs=-1).fit(X_scaled)
+    n_neighbours = int(X.shape[0] * 0.99)
+    nbrs = NearestNeighbors(n_neighbors=n_neighbours, n_jobs=-1).fit(X_scaled)
     distances, indices = nbrs.kneighbors(X_scaled)
     for i in range(len(X_scaled)):
         nbrs_found = 0
@@ -154,20 +196,21 @@ def find_sample(X, y):
         if nbrs_found != 2:
             print("WARNING: could not find inter and intra distances for all X, increase n_neighbors")
         ratios.append(intra / inter)
-    return X[np.argmax(ratios)]
+    return np.argmax(ratios)
 
 
-def diabetes(plotting=False, single_val=-1):
+def diabetes(plotting=False, single_val=-1, outlier=False):
     X, y = load_diabetes(return_X_y=True)
     feature_names = load_diabetes()['feature_names']
-    comparative(X, y, feature_names, 'diabetes', plotting=plotting, single_val=single_val)
+    comparative(X, y, feature_names, 'diabetes', max_depth=3, plotting=plotting, single_val=single_val, outlier=outlier)
 
 
-def concrete(plotting=False, single_val=-1):
+def concrete(plotting=False, single_val=-1, outlier=False):
     X, y = load_concrete(return_X_y=True)
     X,y = np.array(X), np.array(y)
     feature_names = load_concrete()['feature_names']
-    comparative(X, y, feature_names, 'concrete', plotting=plotting, single_val=single_val)
+    comparative(X, y, feature_names, 'concrete', max_depth=3, plotting=plotting, single_val=single_val, outlier=outlier)
+    comparative(X, y, feature_names, 'concrete', max_depth=15, plotting=plotting, single_val=single_val, outlier=outlier)
 
 def housing(plotting=False, single_val=-1):
     X, y = fetch_california_housing(return_X_y=True)
@@ -191,7 +234,7 @@ def stroke(plotting=False, single_val=-1):
     df = pd.read_csv('./datasets/healthcare-dataset-stroke-data.csv', index_col=0)
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
-        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
+        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")").map(lambda x: 1 if x else 0)
         df = pd.concat([df, dummies], axis=1)
         #print(df)
         df = df.drop(labels=column, axis=1)
@@ -202,14 +245,19 @@ def stroke(plotting=False, single_val=-1):
     df = df.drop('stroke', axis=1)
     X = np.array(df)
     feature_names = list(df.columns)
-    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting, single_val=single_val)
-    print("Hard to classify sample: ", find_sample(X, y))
 
-def heart(plotting=False, single_val=-1):
+    hard_sample = find_sample(X, y)
+    print("Hard to classify sample: ", hard_sample)
+
+    print(y[241])
+
+    comparative(X, y, feature_names, 'stroke', regression=False, n_estimators=20, plotting=plotting)#, single_val=241)
+
+def heart(plotting=False, single_val=-1, outlier=False):
     df = pd.read_csv('./datasets/heart.csv')
     cat_columns = df.select_dtypes(['object']).columns
     for column in cat_columns:
-        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")")
+        dummies = pd.get_dummies(df[column], prefix=column, prefix_sep=")").map(lambda x: 1 if x else 0)
         df = pd.concat([df, dummies], axis=1)
         #print(df)
         df = df.drop(labels=column, axis=1)
@@ -221,16 +269,22 @@ def heart(plotting=False, single_val=-1):
     X = np.array(df)
     feature_names = list(df.columns)
     print(feature_names)
-    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10, plotting=plotting, single_val=single_val)
+
+    hard_sample = find_sample(X, y)
+    print("Hard to classify sample: ", hard_sample)
+
+    # print(y[241])
+
+    comparative(X, y, feature_names=feature_names, name='heart disease', regression=False, n_estimators=10, plotting=plotting, single_val=-1, outlier=outlier)
 
 
 if __name__ == '__main__': 
 
-    diabetes(True, 5)
+    # diabetes(True, outlier=True)
 
-    # concrete(True)
-    #breasts(True)
-    # wine()
-    # heart(True)
+    concrete(True, outlier=True)
+    # breasts(True)
+    # wine(True)
+    # heart(True, outlier=True)
     # stroke(True)
     # housing(True)
